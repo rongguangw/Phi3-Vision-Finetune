@@ -32,28 +32,35 @@ class LazySupervisedDataset(Dataset):
         random_seed = 42,
     ):
         super(LazySupervisedDataset, self).__init__()
-        if isinstance(data_path, str):
-            list_data_dict = json.load(open(data_path, "r"))
+        self.data_path = data_path
+        self.data_args = data_args
+        self.train = train
+        self.image_folder = self.data_args.image_folder
+        if not self.train and self.data_args.data_path_val is not None and self.data_args.image_folder_val is not None:
+            self.data_path = self.data_args.data_path_val
+            self.image_folder = self.data_args.image_folder_val
+
+        if isinstance(self.data_path, str):
+            list_data_dict = json.load(open(self.data_path, "r"))
         else:
-            list_data_dict = data_path
+            list_data_dict = self.data_path
 
         # rank0_print("Formatting inputs...Skip in lazy mode")
         self.processor = processor
         self.list_data_dict = list_data_dict
-        self.data_args = data_args
         self.padding = padding
-        self.train = train
         self.train_ratio = train_ratio
         self.random_seed = random_seed
 
-        self.data_idxes = np.arange(0, len(self.list_data_dict))
-        np.random.seed(self.random_seed)
-        np.random.shuffle(self.data_idxes)
-        last_train_sample = int(len(self.data_idxes) * self.train_ratio)
-        if self.train:
-            self.list_data_dict = np.array(self.list_data_dict)[self.data_idxes[:last_train_sample]]
-        else:
-            self.list_data_dict = np.array(self.list_data_dict)[self.data_idxes[last_train_sample:]]
+        if self.data_args.data_path_val is None or self.data_args.image_folder_val is None:
+            self.data_idxes = np.arange(0, len(self.list_data_dict))
+            np.random.seed(self.random_seed)
+            np.random.shuffle(self.data_idxes)
+            last_train_sample = int(len(self.data_idxes) * self.train_ratio)
+            if self.train:
+                self.list_data_dict = np.array(self.list_data_dict)[self.data_idxes[:last_train_sample]]
+            else:
+                self.list_data_dict = np.array(self.list_data_dict)[self.data_idxes[last_train_sample:]]
 
     def __len__(self):
         return len(self.list_data_dict)
@@ -66,7 +73,7 @@ class LazySupervisedDataset(Dataset):
         processor = self.processor
         if "image" in sources[0]:
             image_file = self.list_data_dict[i]["image"]
-            image_folder = self.data_args.image_folder
+            image_folder = self.image_folder
 
             if not os.path.exists(image_file):
                 image_file = os.path.join(image_folder, image_file)

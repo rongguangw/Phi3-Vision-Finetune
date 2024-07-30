@@ -34,4 +34,6 @@ deepspeed src/training/train.py \
     --eval_strategy steps \
     --per_device_eval_batch_size 4 \
     --eval_accumulation_steps 1 \
-    --eval_steps 10
+    --eval_steps 10 \
+    --data_path_val data/local_images.json \
+    --image_folder_val data/local_images

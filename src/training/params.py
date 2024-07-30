@@ -63,4 +63,8 @@ class DataArguments:
     )
     lazy_preprocess: bool = False
     image_folder: Optional[str] = field(default=None)
+    data_path_val: str = field(
+        default=None, metadata={"help": "Path to the validation data."}
+    )
+    image_folder_val: Optional[str] = field(default=None)
 
