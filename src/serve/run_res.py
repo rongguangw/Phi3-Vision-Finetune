@@ -6,10 +6,13 @@ import requests
 from io import BytesIO
 import argparse
 import warnings
-from src.utils import load_pretrained_model, get_model_name_from_path, disable_torch_init
 from pathlib import Path
 import os
 import json
+
+import sys
+sys.path.insert(0, "/home/opc/Phi3-Vision-Finetune")
+from src.utils import load_pretrained_model, get_model_name_from_path, disable_torch_init
 
 warnings.filterwarnings("ignore")
 
@@ -43,10 +46,6 @@ class KeywordsStoppingCriteria(StoppingCriteria):
 
 
 def load_image(image_file):
-    # if image_file.startswith('http://') or image_file.startswith('https://'):
-    #     response = requests.get(image_file)
-    #     image = Image.open(BytesIO(response.content)).convert("RGB")
-    # else:
     image = Image.open(image_file).convert("RGB")
     return image
 
@@ -75,21 +74,29 @@ def main(args):
         ]
 
         image = load_image(image_path)
-        image_name = image_path.split('/')[-1]
-        #print("image file path", args.image_file) #test_image/golden_dataset/chart_4.png
+        image_name = str(image_path).split('/')[-1]
         generation_args = {
             "max_new_tokens": args.max_new_tokens,
             "temperature": args.temperature,
             "do_sample": True if args.temperature > 0 else False,
             "repetition_penalty": args.repetition_penalty,
         }
-
-        input_text = """Please extract the graph into numerical values"""
+        #################################################################
+        input_text = """Summarize the chart. The summary should include the following key information:
+                        1. What is the title of the chart?
+                        2. What does the x-axis represent?
+                        3. What does the y-axis represent?
+                        4.Provide a brief summary of the chart.
+                        5. Provide a brief analysis of the chart, including trend analysis and outlier analysis.
+                        6. The labels shown in the chart (if no specific labels are shown, skip this part).
+                        7. The legend shown in the chart (if no specific legend is shown, skip this part).
+                        8. The annotations shown in the chart (if no specific annotations are shown, skip this part).
+                        9. The source shown in the chart (if no specific source is shown, skip this part)."""
+        #################################################################
         if image is not None and len(messages) < 2:
                 # only putting the image token in the first turn of user.
                 # You could just uncomment the system messages or use it.
             inp = DEFAULT_IMAGE_TOKEN + '\n' + input_text
-            #print("prompt_input:", inp) # <|image_1|> + '\n' + "Describe the image."
         messages.append({"role": "user", "content": inp})
 
         prompt = processor.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
@@ -114,7 +121,6 @@ def main(args):
         outputs = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
         res = res.append({'image': image_name, "prompt": input_text, "completion" : outputs})
         messages.append({"role": "assistant", "content": outputs})
-        #print(outputs) # completion
 
         # save result
         json_path = os.path.join(args.images_file, image_name + ".json")
@@ -129,14 +135,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=str, default="output/vision_merge")
     parser.add_argument("--model-base", type=str, default="microsoft/Phi-3-vision-128k-instruct")
-    parser.add_argument("--images-file", type=str, required=True)
+    parser.add_argument("--images-file", type=str, default="data/golden_dataset")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--load-8bit", action="store_true")
     parser.add_argument("--load-4bit", action="store_true")
     parser.add_argument("--disable_flash_attention", action="store_true")
     parser.add_argument("--temperature", type=float, default=0)
     parser.add_argument("--repetition-penalty", type=float, default=1.0)
-    parser.add_argument("--max-new-tokens", type=int, default=500)
+    parser.add_argument("--max-new-tokens", type=int, default=1000)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
     main(args)
