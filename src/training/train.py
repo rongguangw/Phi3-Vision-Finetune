@@ -12,6 +12,7 @@ from training.trainer import Phi3VTrainer
 from training.data import make_supervised_data_module
 from training.params import DataArguments, ModelArguments, TrainingArguments
 from training.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
+from training.metrics import compute_metrics
 
 local_rank = None
 
@@ -184,6 +185,7 @@ def train():
         model=model,
         processor=processor,
         args=training_args,
+        #compute_metrics=compute_metrics,
         **data_module
     )
 

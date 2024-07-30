@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
 
 import torch
+import numpy as np
 import transformers
 import ujson as json
 from PIL import Image
@@ -26,6 +27,9 @@ class LazySupervisedDataset(Dataset):
         processor: transformers.ProcessorMixin,
         data_args: DataArguments,
         padding=True,
+        train=True,
+        train_ratio = 0.9,
+        random_seed = 42,
     ):
         super(LazySupervisedDataset, self).__init__()
         if isinstance(data_path, str):
@@ -38,6 +42,18 @@ class LazySupervisedDataset(Dataset):
         self.list_data_dict = list_data_dict
         self.data_args = data_args
         self.padding = padding
+        self.train = train
+        self.train_ratio = train_ratio
+        self.random_seed = random_seed
+
+        self.data_idxes = np.arange(0, len(self.list_data_dict))
+        np.random.seed(self.random_seed)
+        np.random.shuffle(self.data_idxes)
+        last_train_sample = int(len(self.data_idxes) * self.train_ratio)
+        if self.train:
+            self.list_data_dict = np.array(self.list_data_dict)[self.data_idxes[:last_train_sample]]
+        else:
+            self.list_data_dict = np.array(self.list_data_dict)[self.data_idxes[last_train_sample:]]
 
     def __len__(self):
         return len(self.list_data_dict)
@@ -166,10 +182,13 @@ def llava_to_openai(conversations):
 def make_supervised_data_module(processor, data_args):
     """Make dataset and collator for supervised fine-tuning."""
     sft_dataset = LazySupervisedDataset(
-        data_path=data_args.data_path, processor=processor, data_args=data_args
+        data_path=data_args.data_path, processor=processor, data_args=data_args, train=True
+    )
+    eval_dataset = LazySupervisedDataset(
+        data_path=data_args.data_path, processor=processor, data_args=data_args, train=False
     )
     data_collator = DataCollatorForSupervisedDataset(tokenizer=processor.tokenizer)
 
     return dict(train_dataset=sft_dataset,
-                eval_dataset=None,
+                eval_dataset=eval_dataset,
                 data_collator=data_collator)
