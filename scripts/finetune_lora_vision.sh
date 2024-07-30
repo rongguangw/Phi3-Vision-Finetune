@@ -30,4 +30,7 @@ deepspeed src/training/train.py \
     --gradient_checkpointing True \
     --report_to wandb \
     --lazy_preprocess True \
-    --dataloader_num_workers 4
+    --dataloader_num_workers 0 \
+    --eval_strategy steps \
+    --per_device_eval_batch_size 4 \
+    --eval_accumulation_steps 1
