@@ -89,7 +89,10 @@ def main(args):
             "do_sample": True if args.temperature > 0 else False,
             "repetition_penalty": args.repetition_penalty,
         }
-        input_text = """Please extract the graph into numerical values"""
+        input_text = """Convert the chart to data points. List the data points in the format {'x_axis value': y_axis value}. Ensure that each data point includes the correct values, approximating values if necessary"""
+        # input_text = """Convert the chart to data points. List the data points in the format {'category': value}. Ensure that each data point includes the correct values"""
+        # input_text = """Convert the chart to data points. List the data points in the format {'x_axis value': y_axis value}"""
+        # input_text = """Please extract the graph into numerical values"""
         # input_text = """Summarize the chart. The summary should include the following key information:
         #                 1. What is the title of the chart?
         #                 2. What does the x-axis represent?

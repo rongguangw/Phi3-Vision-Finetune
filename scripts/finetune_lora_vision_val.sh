@@ -12,14 +12,14 @@ deepspeed src/training/train.py \
     --num_lora_modules -1 \
     --deepspeed scripts/zero3.json \
     --model_id Phi-3-vision-128k-instruct \
-    --data_path data/chartvqa_images.json \
-    --image_folder data/chartvqa_images \
+    --data_path data/whole.json \
+    --image_folder data/whole \
     --tune_img_projector True \
     --freeze_vision_tower False \
     --bf16 True \
-    --output_dir output/lora_vision_test \
+    --output_dir output/lora_vision_whole \
     --num_train_epochs 5 \
-    --per_device_train_batch_size 4 \
+    --per_device_train_batch_size 6 \
     --gradient_accumulation_steps 4 \
     --learning_rate 2e-6 \
     --weight_decay 0. \
@@ -34,6 +34,6 @@ deepspeed src/training/train.py \
     --eval_strategy steps \
     --per_device_eval_batch_size 4 \
     --eval_accumulation_steps 1 \
-    --eval_steps 10 \
-    --data_path_val data/local_images.json \
-    --image_folder_val data/local_images
+    --eval_steps 40 \
+    --data_path_val data/eval_images.json \
+    --image_folder_val data/eval_images
