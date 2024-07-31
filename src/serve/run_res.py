@@ -19,6 +19,7 @@ warnings.filterwarnings("ignore")
 DEFAULT_IMAGE_TOKEN = "<|image_1|>"
 
 
+
 class KeywordsStoppingCriteria(StoppingCriteria):
     def __init__(self, keywords, tokenizer, input_ids):
         self.keywords = keywords
@@ -46,6 +47,12 @@ class KeywordsStoppingCriteria(StoppingCriteria):
 
 
 def load_image(image_file):
+    #if image_file.startswith('http://') or image_file.startswith('https://'):
+        #response = requests.get(image_file)
+        #image = Image.open(BytesIO(response.content)).convert("RGB")
+    #else:
+        #image = Image.open(image_file).convert("RGB")
+    #return image
     image = Image.open(image_file).convert("RGB")
     return image
 
@@ -75,28 +82,29 @@ def main(args):
 
         image = load_image(image_path)
         image_name = str(image_path).split('/')[-1]
+        #print("image file path", args.image_file) #test_image/golden_dataset/chart_4.png
         generation_args = {
             "max_new_tokens": args.max_new_tokens,
             "temperature": args.temperature,
             "do_sample": True if args.temperature > 0 else False,
             "repetition_penalty": args.repetition_penalty,
         }
-        #################################################################
-        input_text = """Summarize the chart. The summary should include the following key information:
-                        1. What is the title of the chart?
-                        2. What does the x-axis represent?
-                        3. What does the y-axis represent?
-                        4.Provide a brief summary of the chart.
-                        5. Provide a brief analysis of the chart, including trend analysis and outlier analysis.
-                        6. The labels shown in the chart (if no specific labels are shown, skip this part).
-                        7. The legend shown in the chart (if no specific legend is shown, skip this part).
-                        8. The annotations shown in the chart (if no specific annotations are shown, skip this part).
-                        9. The source shown in the chart (if no specific source is shown, skip this part)."""
-        #################################################################
+        input_text = """Please extract the graph into numerical values"""
+        # input_text = """Summarize the chart. The summary should include the following key information:
+        #                 1. What is the title of the chart?
+        #                 2. What does the x-axis represent?
+        #                 3. What does the y-axis represent?
+        #                 4. Provide a brief summary of the chart.
+        #                 5. Provide a brief analysis of the chart, including trend analysis and outlier analysis.
+        #                 6. The labels shown in the chart (if no specific labels are shown, skip this part).
+        #                 7. The legend shown in the chart (if no specific legend is shown, skip this part).
+        #                 8. The annotations shown in the chart (if no specific annotations are shown, skip this part).
+        #                 9. The source shown in the chart (if no specific source is shown, skip this part)."""
         if image is not None and len(messages) < 2:
                 # only putting the image token in the first turn of user.
                 # You could just uncomment the system messages or use it.
             inp = DEFAULT_IMAGE_TOKEN + '\n' + input_text
+            #print("prompt_input:", inp) # <|image_1|> + '\n' + "Describe the image."
         messages.append({"role": "user", "content": inp})
 
         prompt = processor.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
@@ -119,16 +127,12 @@ def main(args):
                 )
         generate_ids = generate_ids[:, inputs['input_ids'].shape[1]:]
         outputs = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
-        res = res.append({'image': image_name, "prompt": input_text, "completion" : outputs})
+        res.append({'image': image_name, "prompt": input_text, "completion" : outputs})
         messages.append({"role": "assistant", "content": outputs})
 
-        # save result
         json_path = os.path.join(args.images_file, image_name + ".json")
         with open(json_path, "w") as outfile:
             json.dump(res, outfile, indent=4)
-
-        if args.debug:
-            print("\n", {"prompt": prompt, "outputs": outputs}, "\n")
 
 
 if __name__ == "__main__":
